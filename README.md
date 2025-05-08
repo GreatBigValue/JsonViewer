@@ -58,31 +58,59 @@ project-root/
 └── README.md
 ```
 
-## Getting Started
+## Production Deployment with Custom Domain and SSL
 
-### Prerequisites
+The application includes an Nginx reverse proxy that can be configured to use a custom domain name and SSL certificates.
 
-- Docker and Docker Compose installed on your machine
+### Setting Up a Custom Domain
 
-### Setting Up Environment Variables
-
-1. Copy the example environment files and customize them as needed:
+1. Run the SSL setup script, replacing `example.com` with your domain:
 
 ```bash
-# For the backend
-cp backend/.env.example backend/.env
-
-# For the frontend
-cp frontend/.env.example frontend/.env
+chmod +x setup-ssl.sh
+./setup-ssl.sh example.com
 ```
 
-2. Adjust the environment variables in these files if needed:
-   - Backend `.env`: 
-     - `DATABASE_HOST`, `DATABASE_PORT`, `DATABASE_USER`, `DATABASE_PASSWORD`, `DATABASE_NAME`
-     - `PORT`: The port on which the backend server will run
-     - `CORS_ORIGINS`: Comma-separated list of allowed origins for CORS
-   - Frontend `.env`:
-     - `NEXT_PUBLIC_BACKEND_URL`: The URL to access the backend API
+2. This script will:
+   - Configure the Nginx settings for your domain
+   - Offer to generate self-signed certificates for development/testing
+   - Provide instructions for installing real SSL certificates
+
+3. For production, obtain proper SSL certificates (e.g., from Let's Encrypt) and place them in:
+   - Certificate chain: `nginx/ssl/example.com.fullchain.pem`
+   - Private key: `nginx/ssl/example.com.privkey.pem`
+
+4. Restart the application:
+
+```bash
+./restart.sh
+```
+
+### Manual Configuration
+
+If you prefer to configure SSL manually:
+
+1. Edit the Nginx environment file at `nginx/.env`:
+   ```
+   SERVER_NAME=your-domain.com
+   ENABLE_SSL=true
+   SSL_CERT_FILE=your-domain.com.fullchain.pem
+   SSL_KEY_FILE=your-domain.com.privkey.pem
+   ```
+
+2. Place your SSL certificates in the `nginx/ssl` directory:
+   - Certificate chain: `nginx/ssl/your-domain.com.fullchain.pem`
+   - Private key: `nginx/ssl/your-domain.com.privkey.pem`
+
+3. Restart the application:
+   ```bash
+   ./restart.sh
+   ```
+
+### Accessing the Application
+
+- With SSL enabled: `https://your-domain.com`
+- Without SSL: `http://your-domain.com`
 
 ### Running the Application
 
@@ -113,24 +141,54 @@ docker-compose up -d
 
 ### Troubleshooting
 
-If you encounter build issues, try these steps:
+#### Nginx Connection Issues
 
-1. Make sure Docker and Docker Compose are up to date
-2. Clean Docker cache and unused volumes:
+If you see errors like `host not found in upstream "backend"` or `host not found in upstream "frontend"`:
+
+1. Restart the containers:
    ```bash
-   docker system prune -a
-   docker volume prune
+   ./restart.sh
    ```
-3. Rebuild the containers with no cache:
+
+2. Make sure all scripts are executable:
    ```bash
-   docker-compose build --no-cache
-   docker-compose up -d
+   chmod +x start.sh restart.sh setup-ssl.sh nginx/docker-entrypoint.sh nginx/wait-for-it.sh
    ```
-4. Check the logs for errors:
+
+3. Check the status of all containers:
    ```bash
-   docker-compose logs -f backend
-   docker-compose logs -f frontend
+   docker-compose ps
    ```
+
+4. If any container is not running, check its logs:
+   ```bash
+   docker-compose logs nginx
+   docker-compose logs backend
+   docker-compose logs frontend
+   ```
+
+5. You can manually test if services are reachable within the Docker network:
+   ```bash
+   docker exec -it json-viewer-nginx sh -c "ping backend"
+   docker exec -it json-viewer-nginx sh -c "ping frontend"
+   ```
+
+#### SSL Certificate Issues
+
+If you're having SSL certificate problems:
+
+1. Check if your certificate files exist and have proper permissions:
+   ```bash
+   ls -la nginx/ssl/
+   ```
+
+2. For development, you can generate self-signed certificates:
+   ```bash
+   ./setup-ssl.sh yourdomain.com
+   ```
+   And answer 'y' when asked to generate self-signed certificates.
+
+3. For production, make sure your certificate files are correctly named according to your `nginx/.env` file.
 
 ## API Endpoints
 

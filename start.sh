@@ -11,6 +11,18 @@ if [ ! -f frontend/.env ]; then
   cp frontend/.env.example frontend/.env
 fi
 
+if [ ! -f nginx/.env ]; then
+  echo "Creating nginx/.env from example..."
+  cp nginx/.env.example nginx/.env
+fi
+
+# Make sure nginx is set up correctly
+if [ ! -f nginx/docker-entrypoint.sh ] || [ ! -f nginx/conf/default.conf.template ]; then
+  echo "Setting up Nginx files..."
+  chmod +x setup-nginx.sh
+  ./setup-nginx.sh
+fi
+
 # Build and start the containers
 echo "Starting Docker containers..."
 docker compose build --no-cache

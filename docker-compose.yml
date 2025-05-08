@@ -1,6 +1,27 @@
 services:
+  nginx:
+    build:
+      context: ./nginx
+      dockerfile: Dockerfile
+    container_name: json-viewer-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/conf:/etc/nginx/conf.d
+      - ./nginx/ssl:/etc/nginx/ssl
+      - ./nginx/logs:/var/log/nginx
+    depends_on:
+      - frontend
+      - backend
+    restart: always
+    networks:
+      - json-viewer-network
+    env_file:
+      - ./nginx/.env
   postgres:
     image: postgres:17.4
+    container_name: json-viewer-postgres
     environment:
       POSTGRES_USER: jsonviewer
       POSTGRES_PASSWORD: password
@@ -14,6 +35,8 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - json-viewer-network
 
   backend:
     build:
@@ -27,11 +50,14 @@ services:
       - ./backend/.env
     environment:
       PORT: 3001
-    ports:
-      - "3001:3001"
+    # Only expose to internal network, not to host directly
+    # ports:
+    #   - "3001:3001"
     volumes:
       - ./backend:/app
       - /app/node_modules
+    networks:
+      - json-viewer-network
 
   frontend:
     build:
@@ -40,8 +66,9 @@ services:
     container_name: json-viewer-frontend
     depends_on:
       - backend
-    ports:
-      - "3000:3000"
+    # Only expose to internal network, not to host directly
+    # ports:
+    #   - "3000:3000"
     env_file:
       - ./frontend/.env
     volumes:
@@ -51,6 +78,12 @@ services:
     command: sh -c "bun install && bun run dev"
     environment:
       - NODE_ENV=development
+    networks:
+      - json-viewer-network
 
 volumes:
   postgres_data:
+
+networks:
+  json-viewer-network:
+    driver: bridge

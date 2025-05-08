@@ -1,0 +1,64 @@
+# Default configuration that redirects to HTTPS
+server {
+    listen 80;
+    listen [::]:80;
+
+    # Get server name from environment variable
+    server_name ${SERVER_NAME} localhost;
+
+    # Use Docker's DNS resolver
+    resolver 127.0.0.11 valid=30s;
+
+    # For development environment without SSL
+    location / {
+        # Use variables for dynamic resolution of hostnames
+        set $frontend_upstream "frontend:3000";
+
+        # If SSL is disabled, proxy to frontend directly
+        proxy_pass http://$frontend_upstream;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        # WebSocket support
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+
+        # Don't fail if upstream is not available immediately
+        proxy_connect_timeout 5s;
+        proxy_read_timeout 60s;
+        proxy_send_timeout 60s;
+        proxy_next_upstream error timeout http_502 http_503 http_504;
+    }
+
+    # API requests to the backend
+    location /api {
+        # Use variables for dynamic resolution of hostnames
+        set $backend_upstream "backend:3001";
+
+        # Remove /api prefix when forwarding to backend
+        rewrite ^/api(/.*)$ $1 break;
+
+        proxy_pass http://$backend_upstream;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        # Don't fail if upstream is not available immediately
+        proxy_connect_timeout 5s;
+        proxy_read_timeout 60s;
+        proxy_send_timeout 60s;
+        proxy_next_upstream error timeout http_502 http_503 http_504;
+    }
+
+    # Let's Encrypt verification
+    location /.well-known/acme-challenge/ {
+        root /var/www/certbot;
+    }
+}
+
+# SSL server configuration - only used if SSL is enabled
+${SSL_SERVER_BLOCK}
