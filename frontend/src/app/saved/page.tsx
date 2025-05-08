@@ -71,7 +71,7 @@ export default function SavedPage() {
         </Card>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-1">
+          <div className="lg:col-span-1 z-0">
             <h2 className="text-2xl font-semibold mb-4">Documents</h2>
             <Card>
               <CardBody className="p-2">
@@ -109,7 +109,7 @@ export default function SavedPage() {
             </Card>
           </div>
 
-          <div className="lg:col-span-2">
+          <div className="lg:col-span-2 z-10">
             <h2 className="text-2xl font-semibold mb-4">JSON Preview</h2>
             {selectedDoc ? (
               <JsonViewer data={selectedDoc.content} />

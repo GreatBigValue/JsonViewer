@@ -1,7 +1,8 @@
 'use client'
 
-import { useState } from 'react'
-import { Card, CardBody } from "@nextui-org/react"
+import { useState, useEffect, useCallback } from 'react'
+import { Card, CardBody, Button } from "@nextui-org/react"
+import { ArrowsPointingOutIcon, ArrowsPointingInIcon } from '@heroicons/react/24/outline'
 
 interface JsonViewerProps {
   data: any;
@@ -120,11 +121,56 @@ const JsonNode = ({ name, value, isRoot = false, level }: JsonNodeProps) => {
 }
 
 export default function JsonViewer({ data }: JsonViewerProps) {
+  const [isFullscreen, setIsFullscreen] = useState(false)
+
+  const toggleFullscreen = () => {
+    setIsFullscreen(!isFullscreen)
+  }
+
+  // Handle escape key to exit fullscreen
+  const handleEscapeKey = useCallback((event: KeyboardEvent) => {
+    if (event.key === 'Escape' && isFullscreen) {
+      setIsFullscreen(false)
+    }
+  }, [isFullscreen])
+
+  useEffect(() => {
+    // Add event listener when component mounts
+    document.addEventListener('keydown', handleEscapeKey)
+
+    // Clean up when component unmounts
+    return () => {
+      document.removeEventListener('keydown', handleEscapeKey)
+    }
+  }, [handleEscapeKey])
+
   return (
-    <Card>
-      <CardBody className="overflow-auto max-h-[600px]">
-        <JsonNode name={null} value={data} isRoot={true} level={0} />
-      </CardBody>
-    </Card>
+    <div className="relative">
+      <Card
+        className={`${
+          isFullscreen
+            ? 'fixed inset-0 z-50 rounded-none m-0 max-w-none'
+            : 'relative'
+        } transition-all duration-300 ease-in-out`}
+      >
+        <CardBody className={`overflow-auto ${isFullscreen ? 'h-screen' : 'max-h-[600px]'}`}>
+          <div className="absolute top-2 right-2 z-10">
+            <Button
+              isIconOnly
+              variant="light"
+              aria-label={isFullscreen ? "Exit Fullscreen" : "Fullscreen"}
+              onClick={toggleFullscreen}
+            >
+              {isFullscreen ? (
+                <ArrowsPointingInIcon className="h-5 w-5" />
+              ) : (
+                <ArrowsPointingOutIcon className="h-5 w-5" />
+              )}
+            </Button>
+          </div>
+          <JsonNode name={null} value={data} isRoot={true} level={0} />
+        </CardBody>
+      </Card>
+    </div>
   )
 }

@@ -24,12 +24,12 @@ export default function Home() {
       <h1 className="text-4xl font-bold text-center mb-8">JSON Hierarchical Viewer</h1>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <div>
+        <div className="z-0">
           <h2 className="text-2xl font-semibold mb-4">JSON Input</h2>
           <JsonInput onParse={handleJsonParse} onError={handleError} />
         </div>
 
-        <div>
+        <div className="z-10">
           <h2 className="text-2xl font-semibold mb-4">JSON Tree View</h2>
           {error ? (
             <Card>
